@@ -1,8 +1,9 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 
-interface DialogBox {
+interface Skill {
   id: number;
-  text: string;
+  name: string;
+  desc: string;
 }
 
 const CARD_WIDTH = 400;
@@ -16,11 +17,9 @@ export default function CardEditor() {
   const [sleeveImage, setSleeveImage] = useState<HTMLImageElement | null>(null);
   const [baseImage, setBaseImage] = useState<HTMLImageElement | null>(null);
   const [cardName, setCardName] = useState('');
-  const [dialogs, setDialogs] = useState<DialogBox[]>([
-    { id: 0, text: '' },
-    { id: 1, text: '' },
-    { id: 2, text: '' },
-    { id: 3, text: '' },
+  const [skills, setSkills] = useState<Skill[]>([
+    { id: 0, name: '', desc: '' },
+    { id: 1, name: '', desc: '' },
   ]);
   const [sleeveUrl, setSleeveUrl] = useState<string | null>(null);
   const [baseUrl, setBaseUrl] = useState<string | null>(null);
@@ -54,8 +53,8 @@ export default function CardEditor() {
     });
   };
 
-  const updateDialog = (id: number, text: string) => {
-    setDialogs((prev) => prev.map((d) => (d.id === id ? { ...d, text } : d)));
+  const updateSkill = (id: number, field: 'name' | 'desc', value: string) => {
+    setSkills((prev) => prev.map((s) => (s.id === id ? { ...s, [field]: value } : s)));
   };
 
   const drawCanvas = useCallback(() => {
@@ -75,7 +74,7 @@ export default function CardEditor() {
     ctx.fillStyle = '#e8e8e8';
     ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
 
-    // Layer 0: Base image (bottom layer, left-bottom aligned)
+    // Base image (bottom layer)
     if (baseImage) {
       const scale = CARD_WIDTH / baseImage.width;
       const dw = baseImage.width * scale;
@@ -83,7 +82,7 @@ export default function CardEditor() {
       ctx.drawImage(baseImage, 0, CARD_HEIGHT - dh, dw, dh);
     }
 
-    // Layer 1: Sleeve image (top layer, covers card area)
+    // Sleeve image (top layer)
     if (sleeveImage) {
       ctx.drawImage(sleeveImage, 0, 0, CARD_WIDTH, CARD_HEIGHT);
     } else {
@@ -104,8 +103,7 @@ export default function CardEditor() {
       ctx.fillText('上传卡底作为背景图', CARD_WIDTH / 2, CARD_HEIGHT / 2 + 14);
     }
 
-    // Layer 2: Card name text (drawn on the card in the bottom area)
-    // The actual input is placed below the canvas per user request
+    // Card name
     if (cardName) {
       ctx.save();
       ctx.font = 'bold 20px sans-serif';
@@ -115,41 +113,103 @@ export default function CardEditor() {
       ctx.strokeStyle = 'rgba(0,0,0,0.7)';
       ctx.lineWidth = 3;
       ctx.lineJoin = 'round';
-      const nx = 60;
-      const ny = CARD_HEIGHT - 20;
-      ctx.strokeText(cardName, nx, ny);
-      ctx.fillText(cardName, nx, ny);
+      ctx.strokeText(cardName, 60, CARD_HEIGHT - 20);
+      ctx.fillText(cardName, 60, CARD_HEIGHT - 20);
       ctx.restore();
     }
 
-    // Layer 3: 4 dialog boxes (2 columns x 2 rows) at bottom-left of sleeve content area
-    // Left blue border takes ~80px, so content area starts around x=80
-    const dlgW = 140;
-    const dlgH = 38;
-    const dlgGapX = 12;
-    const dlgGapY = 8;
-    const dlgStartX = 85;
-    const dlgStartY = CARD_HEIGHT - 30 - (dlgH * 2 + dlgGapY) - 30;
+    // Skills: 2 skills vertically stacked
+    // Each skill: bold name + description on the SAME starting line (parallel)
+    // Name is bold; desc starts right after name on same line, wraps below
+    const skillAreaX = 85;
+    const skillAreaMaxX = 375;
+    const skillAreaWidth = skillAreaMaxX - skillAreaX;
+    const nameFontSize = 13;
+    const descFontSize = 12;
+    const lineHeight = descFontSize * 1.6;
+    const skillGap = 14;
+    const nameDescSpacing = 4;
 
     ctx.save();
-    dialogs.forEach((dlg, i) => {
-      const col = i % 2;
-      const row = Math.floor(i / 2);
-      const x = dlgStartX + col * (dlgW + dlgGapX);
-      const y = dlgStartY + row * (dlgH + dlgGapY);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
 
-      if (dlg.text) {
-        drawArrowBox(ctx, x, y, dlgW, dlgH);
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 12px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        const maxW = dlgW - 28;
-        ctx.fillText(truncateText(ctx, dlg.text, maxW), x + (dlgW - 18) / 2, y + dlgH / 2);
+    let currentY = CARD_HEIGHT - 140;
+
+    skills.forEach((skill) => {
+      if (!skill.name && !skill.desc) return;
+
+      // First, measure skill name width
+      ctx.font = `bold ${nameFontSize}px sans-serif`;
+      const nameWidth = skill.name ? ctx.measureText(skill.name).width : 0;
+
+      // Draw skill name (bold, with stroke for readability)
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+      ctx.lineWidth = 2;
+      ctx.lineJoin = 'round';
+
+      if (skill.name) {
+        ctx.strokeText(skill.name, skillAreaX, currentY);
+        ctx.fillText(skill.name, skillAreaX, currentY);
       }
+
+      // Draw description: first line starts right after name (same line = parallel),
+      // subsequent lines wrap from skillAreaX
+      if (skill.desc) {
+        ctx.font = `${descFontSize}px sans-serif`;
+        ctx.fillStyle = 'rgba(255,255,255,0.92)';
+        ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+        ctx.lineWidth = 1.5;
+
+        const descStartX = skill.name ? skillAreaX + nameWidth + nameDescSpacing : skillAreaX;
+        const firstLineWidth = skillAreaMaxX - descStartX;
+        const wrapWidth = skillAreaWidth;
+
+        // Wrap description text
+        const words = skill.desc.split('');
+        let line = '';
+        let isFirstLine = true;
+
+        for (let i = 0; i < words.length; i++) {
+          const char = words[i];
+          if (char === '\n') {
+            if (line) {
+              ctx.strokeText(line, isFirstLine ? descStartX : skillAreaX, currentY);
+              ctx.fillText(line, isFirstLine ? descStartX : skillAreaX, currentY);
+              line = '';
+              isFirstLine = false;
+              currentY += lineHeight;
+            }
+            continue;
+          }
+          const testLine = line + char;
+          const maxW = isFirstLine ? firstLineWidth : wrapWidth;
+          if (ctx.measureText(testLine).width > maxW && line.length > 0) {
+            ctx.strokeText(line, isFirstLine ? descStartX : skillAreaX, currentY);
+            ctx.fillText(line, isFirstLine ? descStartX : skillAreaX, currentY);
+            line = char;
+            isFirstLine = false;
+            currentY += lineHeight;
+          } else {
+            line = testLine;
+          }
+        }
+        if (line) {
+          ctx.strokeText(line, isFirstLine ? descStartX : skillAreaX, currentY);
+          ctx.fillText(line, isFirstLine ? descStartX : skillAreaX, currentY);
+          currentY += lineHeight;
+        }
+      } else if (skill.name) {
+        // Only name, no desc
+        currentY += nameFontSize * 1.3;
+      }
+
+      currentY += skillGap;
     });
+
     ctx.restore();
-  }, [sleeveImage, baseImage, cardName, dialogs]);
+  }, [sleeveImage, baseImage, cardName, skills]);
 
   useEffect(() => {
     drawCanvas();
@@ -171,7 +231,6 @@ export default function CardEditor() {
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: '#1a1a2e' }}>
-      {/* Top Toolbar */}
       <div style={toolbarStyle}>
         <span style={{ fontWeight: 'bold', fontSize: '16px', color: '#e0e0e0', marginRight: '16px' }}>
           GlobalKill 卡牌编辑器
@@ -195,9 +254,7 @@ export default function CardEditor() {
         </button>
       </div>
 
-      {/* Main Content */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        {/* Left Panel */}
         <div style={leftPanelStyle}>
           <div style={sectionTitleStyle}>图层说明</div>
           <div style={{ fontSize: 12, color: '#999', lineHeight: 1.8, marginBottom: 16 }}>
@@ -207,16 +264,23 @@ export default function CardEditor() {
             <div style={{ paddingLeft: 12 }}>左下方对齐卡套</div>
           </div>
 
-          <div style={sectionTitleStyle}>技能对话框（4个，两列平行）</div>
-          {dialogs.map((dlg, i) => (
-            <div key={dlg.id} style={formGroupStyle}>
-              <label style={labelStyle}>技能 {i + 1}</label>
+          <div style={sectionTitleStyle}>技能（同列排列）</div>
+          {skills.map((skill, i) => (
+            <div key={skill.id} style={skillGroupStyle}>
+              <label style={labelStyle}>技能 {i + 1} 名称</label>
               <input
                 type="text"
-                value={dlg.text}
-                onChange={(e) => updateDialog(dlg.id, e.target.value)}
+                value={skill.name}
+                onChange={(e) => updateSkill(skill.id, 'name', e.target.value)}
                 style={inputStyle}
-                placeholder={`输入技能${i + 1}名称`}
+                placeholder={`技能${i + 1}名称`}
+              />
+              <label style={{ ...labelStyle, marginTop: 6 }}>技能 {i + 1} 描述</label>
+              <textarea
+                value={skill.desc}
+                onChange={(e) => updateSkill(skill.id, 'desc', e.target.value)}
+                style={{ ...inputStyle, height: 60, resize: 'vertical' }}
+                placeholder={`技能${i + 1}描述文字`}
               />
             </div>
           ))}
@@ -229,10 +293,8 @@ export default function CardEditor() {
           </div>
         </div>
 
-        {/* Canvas Preview Area */}
         <div style={canvasAreaStyle}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-            {/* Canvas */}
             <div
               style={{
                 position: 'relative',
@@ -246,7 +308,6 @@ export default function CardEditor() {
               <canvas ref={canvasRef} style={{ display: 'block' }} />
             </div>
 
-            {/* Text input below canvas, left-aligned */}
             <div style={{ marginTop: 10, width: CARD_WIDTH }}>
               <label style={{ fontSize: 12, color: '#888', display: 'block', marginBottom: 4 }}>卡牌名称</label>
               <input
@@ -273,57 +334,6 @@ export default function CardEditor() {
   );
 }
 
-function drawArrowBox(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
-  const aw = 16;
-  const r = 3;
-
-  ctx.save();
-  ctx.shadowColor = 'rgba(0, 200, 255, 0.4)';
-  ctx.shadowBlur = 6;
-  ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 0;
-
-  const grad = ctx.createLinearGradient(x, y, x, y + h);
-  grad.addColorStop(0, 'rgba(10, 40, 80, 0.88)');
-  grad.addColorStop(1, 'rgba(5, 25, 55, 0.92)');
-  ctx.fillStyle = grad;
-  ctx.strokeStyle = '#00c8ff';
-  ctx.lineWidth = 1.5;
-
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - aw, y);
-  ctx.lineTo(x + w, y + h / 2);
-  ctx.lineTo(x + w - aw, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-
-  // Inner highlight line
-  ctx.shadowBlur = 0;
-  ctx.strokeStyle = 'rgba(0, 200, 255, 0.15)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(x + r + 2, y + 2);
-  ctx.lineTo(x + w - aw - 2, y + 2);
-  ctx.stroke();
-
-  ctx.restore();
-}
-
-function truncateText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string {
-  if (ctx.measureText(text).width <= maxWidth) return text;
-  let result = text;
-  while (ctx.measureText(result + '…').width > maxWidth && result.length > 0) {
-    result = result.slice(0, -1);
-  }
-  return result + '…';
-}
-
 const toolbarStyle: React.CSSProperties = {
   height: 48,
   background: '#16162a',
@@ -347,7 +357,7 @@ const btnStyle: React.CSSProperties = {
 };
 
 const leftPanelStyle: React.CSSProperties = {
-  width: 240,
+  width: 260,
   background: '#16162a',
   borderRight: '1px solid #2a2a4a',
   padding: 16,
@@ -364,8 +374,8 @@ const sectionTitleStyle: React.CSSProperties = {
   marginBottom: 10,
 };
 
-const formGroupStyle: React.CSSProperties = {
-  marginBottom: 10,
+const skillGroupStyle: React.CSSProperties = {
+  marginBottom: 14,
 };
 
 const labelStyle: React.CSSProperties = {
