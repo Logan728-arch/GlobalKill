@@ -2,26 +2,23 @@ import { useAppStore } from '../stores/useAppStore';
 import type { Project, Card } from '../models/types';
 
 export default function LeftPanel() {
-  const { workspace, selectProject, deleteProject, selectCard } = useAppStore();
+  const { workspace, selectProject, deleteProject, selectCard, getCurrentProject } = useAppStore();
 
-  const currentProject = workspace?.projects.find(
-    (p: Project) => p.id === workspace.currentProjectId
-  );
+  const currentProject = getCurrentProject();
 
   return (
     <div
       style={{
-        width: '260px',
-        backgroundColor: '#FFFFFF',
-        borderRight: '1px solid #D1D5DB',
+        width: '240px',
+        backgroundColor: '#1e1e2e',
+        borderRight: '1px solid #3a3a4a',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
       }}
     >
-      {/* Projects Section */}
-      <div style={{ padding: '12px', borderBottom: '1px solid #E5E7EB' }}>
-        <h3 style={{ fontSize: '13px', fontWeight: 600, color: '#6B7280', marginBottom: '8px' }}>
+      <div style={{ padding: '12px', borderBottom: '1px solid #3a3a4a' }}>
+        <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '8px' }}>
           项目列表
         </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -34,49 +31,52 @@ export default function LeftPanel() {
                 borderRadius: '6px',
                 cursor: 'pointer',
                 fontSize: '13px',
-                color: '#1F2937',
+                color: '#e5e7eb',
                 backgroundColor:
-                  workspace.currentProjectId === project.id ? '#EFF6FF' : 'transparent',
+                  workspace?.currentProjectId === project.id ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255,255,255,0.03)',
                 border:
-                  workspace.currentProjectId === project.id
-                    ? '1px solid #3B82F6'
+                  workspace?.currentProjectId === project.id
+                    ? '1px solid #3b82f6'
                     : '1px solid transparent',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                transition: 'all 0.15s',
               }}
             >
-              <span>{project.name}</span>
+              <span>📁 {project.name}</span>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  deleteProject(project.id);
+                  if (confirm(`确定删除项目 "${project.name}" 吗？`)) {
+                    deleteProject(project.id);
+                  }
                 }}
                 style={{
                   border: 'none',
                   background: 'none',
-                  color: '#EF4444',
+                  color: 'rgba(239, 68, 68, 0.7)',
                   cursor: 'pointer',
                   fontSize: '12px',
                   padding: '2px 6px',
+                  borderRadius: '4px',
                 }}
               >
-                删除
+                ✕
               </button>
             </div>
           ))}
           {(!workspace?.projects || workspace.projects.length === 0) && (
-            <span style={{ fontSize: '12px', color: '#9CA3AF', padding: '8px' }}>
+            <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', padding: '8px' }}>
               暂无项目，点击上方"新建项目"
             </span>
           )}
         </div>
       </div>
 
-      {/* Cards Section */}
       {currentProject && (
         <div style={{ padding: '12px', flex: 1, overflow: 'auto' }}>
-          <h3 style={{ fontSize: '13px', fontWeight: 600, color: '#6B7280', marginBottom: '8px' }}>
+          <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '8px' }}>
             卡牌列表
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -85,28 +85,32 @@ export default function LeftPanel() {
                 key={card.id}
                 onClick={() => selectCard(card.id)}
                 style={{
-                  padding: '8px 10px',
+                  padding: '10px',
                   borderRadius: '6px',
                   cursor: 'pointer',
                   fontSize: '13px',
-                  color: '#1F2937',
+                  color: '#e5e7eb',
                   backgroundColor:
-                    workspace.currentCardId === card.id ? '#EFF6FF' : 'transparent',
+                    workspace?.currentCardId === card.id ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255,255,255,0.03)',
                   border:
-                    workspace.currentCardId === card.id
-                      ? '1px solid #3B82F6'
+                    workspace?.currentCardId === card.id
+                      ? '1px solid #3b82f6'
                       : '1px solid transparent',
+                  transition: 'all 0.15s',
                 }}
               >
-                <div>{card.name}</div>
-                <div style={{ fontSize: '11px', color: '#9CA3AF' }}>
-                  {card.canvasWidth} x {card.canvasHeight}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>🃏</span>
+                  <span style={{ flex: 1 }}>{card.name}</span>
+                </div>
+                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>
+                  {card.canvasWidth} × {card.canvasHeight}
                 </div>
               </div>
             ))}
             {currentProject.cards.length === 0 && (
-              <span style={{ fontSize: '12px', color: '#9CA3AF', padding: '8px' }}>
-                暂无卡牌，点击上方"新建卡牌"
+              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', padding: '8px' }}>
+                暂无卡牌，点击工具栏模板按钮创建
               </span>
             )}
           </div>

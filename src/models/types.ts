@@ -1,5 +1,3 @@
-// Global Kill Card Editor - Core Data Models
-
 export interface Asset {
   id: string;
   name: string;
@@ -11,7 +9,7 @@ export interface Asset {
 export interface Layer {
   id: string;
   name: string;
-  type: 'image' | 'text';
+  type: 'image' | 'text' | 'shape';
   visible: boolean;
   locked: boolean;
   x: number;
@@ -20,9 +18,7 @@ export interface Layer {
   height: number;
   rotation: number;
   opacity: number;
-  // Image specific
   imageUrl?: string;
-  // Text specific
   text?: string;
   font?: string;
   fontSize?: number;
@@ -31,11 +27,30 @@ export interface Layer {
   align?: 'left' | 'center' | 'right';
   lineHeight?: number;
   letterSpacing?: number;
+  vertical?: boolean;
+  editable?: boolean;
+  fixedStyle?: boolean;
+  backgroundColor?: string;
+  borderRadius?: number;
+  borderWidth?: number;
+  borderColor?: string;
+  zIndex?: number;
+}
+
+export interface CardTemplate {
+  id: string;
+  name: string;
+  faction: string;
+  canvasWidth: number;
+  canvasHeight: number;
+  layers: Layer[];
+  thumbnail?: string;
 }
 
 export interface Card {
   id: string;
   name: string;
+  templateId?: string;
   canvasWidth: number;
   canvasHeight: number;
   layers: Layer[];

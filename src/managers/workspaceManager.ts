@@ -1,7 +1,6 @@
 import type { Workspace, Project } from '../models/types';
 import {
   saveWorkspace,
-  loadWorkspace,
   initializeWorkspace,
   loadAllProjects,
 } from '../utils/persistence';

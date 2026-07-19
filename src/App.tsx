@@ -22,8 +22,8 @@ function App() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#F5F5F7',
-          color: '#6B7280',
+          backgroundColor: '#1e1e2e',
+          color: 'rgba(255,255,255,0.6)',
           fontSize: '14px',
         }}
       >
@@ -40,7 +40,7 @@ function App() {
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        backgroundColor: '#F5F5F7',
+        backgroundColor: '#1e1e2e',
       }}
     >
       <Toolbar />
